@@ -13,27 +13,43 @@ rule_files:
 
 # A scrape configuration containing exactly one endpoint to scrape.
 scrape_configs:
-  - job_name: 'nodeexporter'
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['nodeexporter:9100']
 
-  - job_name: 'cadvisor'
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['cadvisor:8080']
-
-  - job_name: 'prometheus'
+  - job_name: 'node_metric'
     scrape_interval: 10s
-    static_configs:
-      - targets: ['localhost:9090']
+    ec2_sd_configs:
+      - region: ap-northeast-2
+        port: 80
+    relabel_configs:
+      # Screens out EC2 instances except Careerdayweb-env
+      - source_labels:
+        - '__meta_ec2_tag_Name'
+        regex: 'Careerdayweb-env'
+        action: 'keep'
+      - source_labels:
+        - '__meta_ec2_instance_id'
+        target_label: 'instance_id'
+      - source_labels:
+        - '__meta_ec2_instance_type'
+        target_label:  'EC2_instance_type'
 
-  - job_name: 'pushgateway'
+  - job_name: 'node_swagger_stats_metric'
     scrape_interval: 10s
-    honor_labels: true
-    static_configs:
-      - targets: ['pushgateway:9091']
-
+    metrics_path: '/swagger-stats/metrics'
+    ec2_sd_configs:
+      - region: ap-northeast-2
+        port: 80
+    relabel_configs:
+      # Screens out EC2 instances except Careerdayweb-env
+      - source_labels:
+        - '__meta_ec2_tag_Name'
+        regex: 'Careerdayweb-env'
+        action: 'keep'
+      - source_labels:
+        - '__meta_ec2_instance_id'
+        target_label: 'instance_id'
+      - source_labels:
+        - '__meta_ec2_instance_type'
+        target_label:  'EC2_instance_type'
 
 alerting:
   alertmanagers:
@@ -41,13 +57,3 @@ alerting:
     static_configs:
     - targets: 
       - 'alertmanager:9093'
-
-#  - job_name: 'nginx'
-#    scrape_interval: 10s
-#    static_configs:
-#      - targets: ['nginxexporter:9113']
-
-#  - job_name: 'aspnetcore'
-#    scrape_interval: 10s
-#    static_configs:
-#      - targets: ['eventlog-proxy:5000', 'eventlog:5000']
